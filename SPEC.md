@@ -103,6 +103,7 @@ ToolCall {
 - NFR-3: Binds to localhost only. No data leaves the machine.
 - NFR-4: Runs with minimal setup, matching the proxy's "nothing to install" spirit where practical.
 - NFR-5: Captured traffic contains prompts, file contents, and tool output, so it is treated as sensitive. Nothing is written to disk unless the user opts in.
+- NFR-6: The repository includes a `.gitignore` that ignores `__pycache__/` (and other Python bytecode) so `git status` stays clean.
 
 ## 7. Out of Scope for v1
 
@@ -132,7 +133,7 @@ ToolCall {
 | 4 | History: in-memory only vs. persisted (file/SQLite) | **decided: in-memory only**, with a cap on retained exchanges (exact limit in #8); nothing written to disk |
 | 5 | Conversation grouping (main agent vs. subagents / side requests) | **decided: auto-detect threads, show all in one feed**; each exchange is labeled main / subagent / side call, with a filter per kind; diffs compare within a thread |
 | 6 | Diff granularity and presentation | **decided: compact change summary**; a badge row per exchange (e.g. "+2 messages, system unchanged, tools unchanged") expandable to the added messages, with a text diff only for sections that actually changed |
-| 7 | Layout (list + detail pane vs. single expandable stream) | **decided: list + detail pane**; left is a compact newest-first list (one line per exchange: time, thread label, tools, status, error marker), right is the selected exchange in full |
+| 7 | Layout (list + detail pane vs. single expandable stream) | **decided: list + detail pane**; left is a compact newest-first list (one line per exchange: time, thread label, tools, status, error marker, and that exchange's own token usage as input and output tokens, e.g. `1,234 in / 56 out`, so per-task token cost is visible at a glance without opening the detail pane), right is the selected exchange in full |
 | 8 | Handling of very large payloads and retention limits | **decided: cap by count, lazy render**; keep the most recent 500 exchanges by default (adjustable by flag), drop the oldest, and render large sections only when expanded |
 | 9 | Redaction policy beyond auth headers | **decided: auth headers only** (`authorization`, `x-api-key`, as `proxy.py` does today); message bodies and tool output are shown in full |
 | 10 | Non-Anthropic upstream support | **decided: Anthropic only, raw fallback**; Messages API traffic gets the parsed views, any other format still appears in the feed as raw formatted JSON/text with no tool pairing or diff |
