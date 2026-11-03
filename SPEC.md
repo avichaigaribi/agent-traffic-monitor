@@ -1,6 +1,6 @@
 # SPEC: Agent Traffic Dashboard
 
-Status: **DRAFT v0.2**. All 10 decisions in section 9 are resolved. Section 4 and the requirements still need a pass to reflect them before implementation starts.
+Status: **FINAL v1.0**. All 10 decisions in section 9 are resolved and reflected in the requirements.
 
 ## 1. Purpose
 
@@ -27,6 +27,9 @@ Non-goals (v1):
 - FR-3: Each request/reply pair is one **exchange** (a card/row) showing: timestamp, sequence number, HTTP method and path, model, status code, duration, and token usage when available.
 - FR-4: A reply that is still streaming is shown as in progress and fills in incrementally. When it ends, the exchange is marked complete.
 - FR-5: The feed shows a connection indicator (connected, reconnecting) and a pause/resume control so a user can read without the list shifting. Entries that arrive while paused are counted and shown on resume.
+
+### 3.1.1 Critical summary
+- FR-29: The top of each exchange's detail view shows a concise **critical summary** that extracts signal from noise and highlights ONLY the most important details: errors first (HTTP/API/stream/proxy errors, `is_error` tool results), then the tools actually called with their key argument, the tool results returned in this request, and the main action (stop reason or a one-line text excerpt). Routine details (headers, parameters, unchanged sections) are left to the sections below. Keep it to a few lines.
 
 ### 3.2 Request breakdown
 Each request is split into clearly separated sections, each with its own header and a collapse toggle:
@@ -62,7 +65,7 @@ Each request is split into clearly separated sections, each with its own header 
 - FR-27: Secrets are masked in the display the same way the proxy does today (`authorization`, `x-api-key` truncated).
 - FR-28: Light and dark theme following the OS setting. Usable at laptop width; large payloads must not cause horizontal page scroll.
 
-## 4. Architecture (proposed)
+## 4. Architecture
 
 ```
  claude (harness) --> proxy.py :8041 --> api.anthropic.com
@@ -133,7 +136,7 @@ ToolCall {
 | 4 | History: in-memory only vs. persisted (file/SQLite) | **decided: in-memory only**, with a cap on retained exchanges (exact limit in #8); nothing written to disk |
 | 5 | Conversation grouping (main agent vs. subagents / side requests) | **decided: auto-detect threads, show all in one feed**; each exchange is labeled main / subagent / side call, with a filter per kind; diffs compare within a thread |
 | 6 | Diff granularity and presentation | **decided: compact change summary**; a badge row per exchange (e.g. "+2 messages, system unchanged, tools unchanged") expandable to the added messages, with a text diff only for sections that actually changed |
-| 7 | Layout (list + detail pane vs. single expandable stream) | **decided: list + detail pane**; left is a compact newest-first list (one line per exchange: time, thread label, tools, status, error marker, and that exchange's own token usage as input and output tokens, e.g. `1,234 in / 56 out`, so per-task token cost is visible at a glance without opening the detail pane), right is the selected exchange in full |
+| 7 | Layout (list + detail pane vs. single expandable stream) | **decided: list + detail pane**; left is a compact newest-first list (one line per exchange: time, thread label, tools, status, error marker, and that exchange's own token usage as input and output tokens, exactly `🪙 <in> in / <out> out`, e.g. `🪙 1234 in / 56 out`, so per-task token cost is visible at a glance without opening the detail pane), right is the selected exchange in full |
 | 8 | Handling of very large payloads and retention limits | **decided: cap by count, lazy render**; keep the most recent 500 exchanges by default (adjustable by flag), drop the oldest, and render large sections only when expanded |
 | 9 | Redaction policy beyond auth headers | **decided: auth headers only** (`authorization`, `x-api-key`, as `proxy.py` does today); message bodies and tool output are shown in full |
 | 10 | Non-Anthropic upstream support | **decided: Anthropic only, raw fallback**; Messages API traffic gets the parsed views, any other format still appears in the feed as raw formatted JSON/text with no tool pairing or diff |
