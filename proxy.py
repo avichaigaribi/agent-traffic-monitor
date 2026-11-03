@@ -596,7 +596,7 @@ function renderList(all){
     return `<div class="row ${ex.id===sel?'sel':''} ${ex.anyErr?'err':''}" data-id="${ex.id}"><span class="mono">#${ex.id}</span><span class="t">${new Date(ex.t0).toLocaleTimeString()}</span>
     <span class="badge ${ex.kind}">${ex.kind==='side'?'side call':ex.kind}</span>${ex.anyErr?'<span class="badge err">⛔ error</span>':''}
     <span class="badge ${ex.done?(ex.anyErr?'err':'ok'):'pend'}">${ex.done?st:'⏳ '+st}</span>
-    <span class="t">${ex.tEnd?(ex.tEnd-ex.t0)+' ms':''}${u?' · '+(u.output_tokens||0)+' out':''}</span>
+    <span class="t">${ex.tEnd?(ex.tEnd-ex.t0)+' ms':''}</span>${u?`<span class="t tok" title="input (incl. cache) / output tokens">🪙 ${((u.input_tokens||0)+(u.cache_read_input_tokens||0)+(u.cache_creation_input_tokens||0)).toLocaleString()} in / ${(u.output_tokens||0).toLocaleString()} out</span>`:''}
     <span class="t">${esc(String(ex.method)+' '+ex.path.split('?')[0])}</span>${ex.toolNames.length?`<span class="tl">🔧 ${esc(ex.toolNames.join(', '))}</span>`:''}</div>`}).join('')||'<p class="dim" style="padding:10px">No matching exchanges.</p>'}
 
 /* ---------- update loop ---------- */
