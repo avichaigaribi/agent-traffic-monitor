@@ -386,6 +386,7 @@ pre.tx,pre.cp{margin:2px 0;padding:6px 8px;background:var(--code);border-radius:
 .dl{font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
 .dl .a{color:var(--ok)}.dl .d{color:var(--err)}
 .flash{outline:2px solid var(--call)}
+.crit{border:1px solid var(--bd);border-left:4px solid var(--call);border-radius:4px;padding:6px 10px;margin-bottom:10px;font-size:13px}.crit div{margin:2px 0;overflow-wrap:anywhere}.crit .ce{color:var(--err);font-weight:600}
 .errbanner{background:var(--errbg);border:1px solid var(--err);color:var(--err);padding:6px 10px;border-radius:6px;margin-bottom:10px;font-weight:600}
 h2.dh{margin:0 0 8px;font-size:15px;overflow-wrap:anywhere}
 @media(max-width:800px){#main{grid-template-columns:1fr;grid-template-rows:40% 60%}#list{border-right:none;border-bottom:1px solid var(--bd)}}
@@ -570,10 +571,30 @@ function renderReply(ex){
   else body+=ex.done?'<span class="dim">(empty response)</span>':'<span class="badge pend">⏳ waiting for response…</span>';
   if(ex.resp&&(ex.sse||ex.message))body+=lz(ex.sse?'raw event stream':'raw response',()=>`<pre class="tx">${esc(ex.resp)}</pre>`,false);
   return h+secBegin('reply',`🤖 Reply ${ex.done?'':'<span class="badge pend">in progress</span>'}`,true,()=>body)}
+function keyArg(inp){if(!inp||typeof inp!=='object')return'';const k=['command','file_path','path','pattern','url','query','description','prompt'].find(k=>typeof inp[k]==='string')||Object.keys(inp).find(k=>typeof inp[k]==='string');if(!k)return'';const v=inp[k].replace(/\s+/g,' ');return v.length>70?v.slice(0,70)+'…':v}
+function critical(ex){
+  const L=[];
+  if(ex.error)L.push(['ce','⛔ '+esc(ex.error)]);
+  if(ex.rerr)L.push(['ce','⛔ API error: '+esc(typeof ex.rerr==='string'?ex.rerr:(ex.rerr.type||'')+' '+(ex.rerr.message||''))]);
+  else if(ex.status!=null&&ex.status>=400&&!ex.error)L.push(['ce','⛔ HTTP '+ex.status]);
+  if(ex.isMsg){const nw=ex.msgs.slice(ex.newStart);let res=0,bad=0;
+    nw.forEach(m=>blocksOf(m).forEach(b=>{if(b&&b.type==='tool_result'){res++;if(b.is_error)bad++}}));
+    if(bad)L.push(['ce','⛔ '+bad+' tool result'+(bad>1?'s':'')+' flagged is_error']);
+    if(res)L.push(['','📥 returned '+res+' tool result'+(res>1?'s':'')+(bad?' ('+bad+' error)':'')]);}
+  const m=ex.message;
+  if(m){const uses=(m.content||[]).filter(b=>b&&b.type==='tool_use');
+    uses.forEach(b=>L.push(['','🔧 called <b>'+esc(b.name||'?')+'</b>'+(keyArg(b.input)?' <span class="dim">'+esc(keyArg(b.input))+'</span>':'')]));
+    if(!uses.length){const t=(m.content||[]).filter(b=>b&&b.type==='text').map(b=>b.text).join(' ').replace(/\s+/g,' ').trim();
+      if(t)L.push(['','💬 '+esc(t.length>140?t.slice(0,140)+'…':t)])}
+    if(ex.done&&m.stop_reason&&!uses.length&&m.stop_reason!=='end_turn')L.push(['','stop: '+esc(m.stop_reason)])}
+  else if(!ex.done&&!ex.error)L.push(['','⏳ waiting for reply…']);
+  if(!L.length)return'';
+  return `<div class="crit"><b>Key points</b>${L.map(([c,t])=>`<div class="${c}">${t}</div>`).join('')}</div>`}
 function renderHead(ex){
   const mdl=(ex.req&&ex.req.model)||'';
   return `<h2 class="dh">#${ex.id} ${esc(ex.method)} ${esc(ex.path)} ${ex.kind&&ex.kind!=='raw'?`<span class="badge ${ex.kind}">${ex.kind}</span>`:'<span class="badge">raw</span>'} ${ex.anyErr?'<span class="badge err">⛔ ERROR</span>':''}</h2>
   <div class="params" style="margin-bottom:10px"><span>${new Date(ex.t0).toLocaleTimeString()}</span>${mdl?`<span>${esc(mdl)}</span>`:''}<span>status ${ex.status??'…'}</span><span>${ex.tEnd?ex.tEnd-ex.t0+' ms':'in progress'}</span></div>
+  ${critical(ex)}
   ${ex.toolErr?'<div class="errbanner">⛔ This request carries a tool result flagged is_error</div>':''}`}
 function showDetail(full){
   const ex=X.get(sel);const d=$('#detail');
